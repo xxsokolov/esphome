@@ -1,3 +1,9 @@
+# Description
+# This configuration is written for switches Lonsonho, Zemismart, Moes, etc
+# - A quick press on the key turns on/off the light
+# - Long press on the left or right key locks/unlocks the keys
+# - A long press on the left and right publishes the pressing of two keys
+
 esphome:
   name: ${device_name}
   platform: ESP8266
@@ -17,17 +23,9 @@ wifi:
     ssid: ${device_name}
     password: ${ap_pass}
 
-# Enable Home Assistant API
 api:
   password: ${api_pass}
   reboot_timeout: 1h
-  
-# Web server
-# web_server:
-#   port: 80
-#   auth:
-#     username: ${web_user}
-#     password: ${web_pass}
     
 output:
   - platform: gpio
