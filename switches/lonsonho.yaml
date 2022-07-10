@@ -1,3 +1,5 @@
+# https://github.com/xxsokolov/esphome/blob/main/switches/lonsonho.yaml
+#
 # Description
 # This configuration is written for switches Lonsonho, Zemismart, Moes, etc
 # - A quick press on the key turns on/off the light
@@ -56,6 +58,14 @@ light:
     output: output_${right_button_relay}_relay
     restore_mode: ${light_restore_mode}
 
+  - platform: status_led
+    id: status_green_led
+    internal: true
+    pin: 
+      number: GPIO13
+      mode: OUTPUT
+      inverted: true 
+      
 binary_sensor:
   - platform: gpio
     name: "${name} Pressed Left Button"  
@@ -276,7 +286,6 @@ switch:
     id: backlighting
     icon: "mdi:weather-night"
     optimistic: true
-    restore_state: true
     on_turn_on:
       - output.turn_on: output_led_green
     on_turn_off:
