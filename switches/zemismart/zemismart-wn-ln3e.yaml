@@ -3,7 +3,7 @@
 # - A quick press on the key turns on/off the light
 # - Long press on the left or right key locks/unlocks the keys
 # - A long press on the left and right publishes the pressing of two keys
-# https://github.com/xxsokolov/esphome/blob/main/switches/zemismart-wn-ln1e.yaml
+# https://github.com/xxsokolov/esphome/blob/main/switches/zemismart
 # 
 # example
 #
