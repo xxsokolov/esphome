@@ -1,1 +1,324 @@
+# Description
+# This configuration is written for switches Zemismart
+# - A quick press on the key turns on/off the light
+# - Long press on the left or right key locks/unlocks the keys
+# - A long press on the left and right publishes the pressing of two keys
+# https://github.com/xxsokolov/esphome/blob/main/switches/zemismart-wn-ln2e.yaml
+# 
+# example
+#
+#substitutions:
+#    device_name: zemismart-wn-ln2e-bathroom-1
+#    name: "Zemismart WN LN2E Bathroom 1"
+#    ota_pass: "your_ota_pass"
+#    wifi_ssid: "your_wifi"
+#    wifi_pass: "your_wifi_pass"
+#    ap_pass: "your_ap_pass"
+#    api_pass: "your_api_pass"
+#    logging: INFO
+#    
+#    light_restore_mode: RESTORE_DEFAULT_OFF
+#    
+#packages:
+#  lonsonho:
+#    url: https://github.com/xxsokolov/esphome
+#    ref: main
+#    files:
+#      - switches/zemismart-wn-ln2e.yaml
+#   refresh: 0s
 
+esphome:
+  name: ${device_name}
+  platform: ESP8266
+  board: esp01_1m
+
+logger:
+  level: ${logging}
+
+ota:
+  password: ${ota_pass}
+
+wifi:
+  ssid: ${wifi_ssid}
+  password: ${wifi_pass}
+  fast_connect: on
+  ap:
+    ssid: ${device_name}
+    password: ${ap_pass}
+
+api:
+  password: ${api_pass}
+  reboot_timeout: 1h    
+    
+    
+output:
+  - platform: gpio
+    pin: GPIO13
+    id: output_one_relay
+
+  - platform: gpio
+    pin: GPIO14
+    id: output_two_relay
+
+  - platform: gpio
+    id: output_one_led
+    pin: 
+      number: GPIO0
+      mode: OUTPUT
+      inverted: True
+
+  - platform: gpio
+    id: output_two_led
+    pin: 
+      number: GPIO3
+      mode: OUTPUT
+      inverted: True
+         
+light:
+  - platform: binary
+    name: "${name} One Button"
+    id: one_relay
+    output: output_one_relay
+    restore_mode: ${light_restore_mode}
+    on_turn_on:
+      - output.turn_on: output_one_led
+    on_turn_off:
+      - output.turn_off: output_one_led
+
+  - platform: binary
+    name: "${name} Two Button"
+    id: two_relay
+    output: output_two_relay
+    restore_mode: ${light_restore_mode}
+    on_turn_on:
+      - output.turn_on: output_two_led
+    on_turn_off:
+      - output.turn_off: output_two_led
+
+  - platform: status_led
+    id: status_green_led
+    internal: true
+    pin: 
+      number: GPIO2
+      mode: OUTPUT
+      inverted: true 
+
+binary_sensor:
+  - platform: gpio
+    name: "${name} Pressed One Button"  
+    id: one_button  
+    pin:
+      number: GPIO5
+      mode: INPUT_PULLUP
+    filters:
+      - invert:
+      - delayed_on: 20ms
+    on_multi_click:
+      - timing:
+        - ON for 50ms to 1000ms
+        then:
+          - logger.log: "One-Pressed One Button"
+          - if:
+              condition:
+                - switch.is_off: buttons_lock
+              then:
+                - if:
+                    condition:
+                      - light.is_off: one_relay
+                    then:
+                      - light.turn_on: one_relay
+                      - output.turn_on: output_one_led
+                    else:
+                      - light.turn_off: one_relay
+                      - output.turn_off: output_one_led
+              else:
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - delay: 100ms              
+                - output.turn_on: output_one_led
+                - output.turn_on: output_two_led
+                - delay: 200ms
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - delay: 100ms              
+                - output.turn_on: output_one_led
+                - output.turn_on: output_two_led
+                - delay: 200ms
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - delay: 100ms      
+                - if:
+                    condition:
+                      - light.is_on: one_relay
+                    then:
+                      - output.turn_on: output_one_led
+                - if:
+                    condition:
+                      - light.is_on: two_relay
+                    then:
+                      - output.turn_on: output_two_led
+      - timing:
+        - ON for at least 1500ms
+        then:
+          - logger.log: "Long-Pressed One Button"
+          - if:
+              condition:
+                - switch.is_off: buttons_lock
+              then:
+                - switch.turn_on: buttons_lock
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - delay: 500ms
+                - output.turn_on: output_one_led 
+                - output.turn_on: output_two_led
+                - delay: 1000ms
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - if:
+                    condition:
+                      - light.is_on: one_relay
+                    then:
+                      - output.turn_on: output_one_led
+                - if:
+                    condition:
+                      - light.is_on: two_relay
+                    then:
+                      - output.turn_on: output_two_led
+              else:
+                - output.turn_off: output_one_led    
+                - output.turn_off: output_two_led
+                - delay: 500ms
+                - output.turn_on: output_one_led            
+                - output.turn_on: output_two_led
+                - delay: 1000ms
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - if:
+                    condition:
+                      - light.is_on: one_relay
+                    then:
+                      - output.turn_on: output_one_led
+                - if:
+                    condition:
+                      - light.is_on: two_relay
+                    then:
+                      - output.turn_on: output_two_led
+                - switch.turn_off: buttons_lock
+
+  - platform: gpio
+    name: "${name} Pressed Two Button"  
+    id: two_button  
+    pin:
+      number: GPIO12
+      mode: INPUT_PULLUP
+    filters:
+      - invert:
+      - delayed_on: 20ms
+    on_multi_click:
+      - timing:
+        - ON for 50ms to 1000ms
+        then:
+          - logger.log: "One-Pressed One Button"
+          - if:
+              condition:
+                - switch.is_off: buttons_lock
+              then:
+                - if:
+                    condition:
+                      - light.is_off: two_relay
+                    then:
+                      - light.turn_on: two_relay
+                      - output.turn_on: output_two_led
+                    else:
+                      - light.turn_off: two_relay
+                      - output.turn_off: output_two_led
+              else:
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - delay: 100ms              
+                - output.turn_on: output_one_led
+                - output.turn_on: output_two_led
+                - delay: 200ms
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - delay: 100ms              
+                - output.turn_on: output_one_led
+                - output.turn_on: output_two_led
+                - delay: 200ms
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - delay: 100ms       
+                - if:
+                    condition:
+                      - light.is_on: one_relay
+                    then:
+                      - output.turn_on: output_one_led
+                - if:
+                    condition:
+                      - light.is_on: two_relay
+                    then:
+                      - output.turn_on: output_two_led
+      - timing:
+        - ON for at least 1500ms
+        then:
+          - logger.log: "Long-Pressed One Button"
+          - if:
+              condition:
+                - switch.is_off: buttons_lock
+              then:
+                - switch.turn_on: buttons_lock
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - delay: 500ms
+                - output.turn_on: output_one_led 
+                - output.turn_on: output_two_led
+                - delay: 1000ms
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - if:
+                    condition:
+                      - light.is_on: one_relay
+                    then:
+                      - output.turn_on: output_one_led
+                - if:
+                    condition:
+                      - light.is_on: two_relay
+                    then:
+                      - output.turn_on: output_two_led
+              else:
+                - output.turn_off: output_one_led    
+                - output.turn_off: output_two_led
+                - delay: 500ms
+                - output.turn_on: output_one_led            
+                - output.turn_on: output_two_led
+                - delay: 1000ms
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - if:
+                    condition:
+                      - light.is_on: one_relay
+                    then:
+                      - output.turn_on: output_one_led
+                - if:
+                    condition:
+                      - light.is_on: two_relay
+                    then:
+                      - output.turn_on: output_two_led
+                - switch.turn_off: buttons_lock
+
+switch:
+  - platform: template
+    name: "${name} Buttons Lock"
+    id: buttons_lock
+    icon: "mdi:lock"
+    optimistic: true
+    restore_state: true
+
+button:
+  - platform: restart
+    name: "${name} Restart"
+
+sensor:  
+  - platform: wifi_signal
+    name: "${name} WiFi Signal"
+    update_interval: 60s
