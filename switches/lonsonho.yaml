@@ -207,6 +207,9 @@ binary_sensor:
                       - delay: 500ms
                       - output.turn_on: output_led_green               
                       - delay: 1000ms  
+                      - binary_sensor.turn_off: one_button
+                      - binary_sensor.turn_off: two_button
+                      - delay: 1000ms
                       - button.press: restart_button
                     else:
                       - output.turn_off: output_led_green
