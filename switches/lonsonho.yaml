@@ -1,10 +1,34 @@
+# Description
+# This configuration is written for switches Lonsonho
+#  - Quick press (from 20 ms to 1 s) on any key turns on/off the relevant relay
+#  - Long press (from 2 to 4 seconds) on any key locks/unlocks all keys
+#  - Long press (at least 10 seconds) on all keys will restart the chip
+#
 # https://github.com/xxsokolov/esphome/blob/main/switches/lonsonho.yaml
 #
-# Description
-# This configuration is written for switches Lonsonho, Zemismart, Moes, etc
-# - A quick press on the key turns on/off the light
-# - Long press on the left or right key locks/unlocks the keys
-# - A long press on the left and right publishes the pressing of two keys
+# 
+# example
+#
+#substitutions:
+#    device_name: lonsonho-x802a-lg-bedroom-1
+#    name: "Lonsonho Switch Bedroom 1"
+#    ota_pass: "your_ota_pass"
+#    wifi_ssid: "your_wifi"
+#    wifi_pass: "your_wifi_pass"
+#    ap_pass: "your_ap_pass"
+#    api_pass: "your_api_pass"
+#    logging: INFO
+#    
+#    light_restore_mode: RESTORE_DEFAULT_OFF
+#    
+#packages:
+#  lonsonho:
+#    url: https://github.com/xxsokolov/esphome
+#    ref: main
+#    files:
+#      - switches/lonsonho.yaml
+#   refresh: 0s
+
 
 esphome:
   name: ${device_name}
@@ -32,11 +56,11 @@ api:
 output:
   - platform: gpio
     pin: GPIO12
-    id: output_left_relay
+    id: output_one_relay
     
   - platform: gpio
     pin: GPIO14
-    id: output_right_relay
+    id: output_two_relay
     
   - platform: gpio
     id: output_led_green  
@@ -48,14 +72,14 @@ output:
 light:
   - platform: binary
     name: "${name} Left Button"
-    id: left_relay
-    output: output_${left_button_relay}_relay
+    id: one_relay
+    output: output_one_relay
     restore_mode: ${light_restore_mode}
 
   - platform: binary
     name: "${name} Right Button"
-    id: right_relay
-    output: output_${right_button_relay}_relay
+    id: two_relay
+    output: output_two_relay
     restore_mode: ${light_restore_mode}
 
   - platform: status_led
@@ -69,7 +93,7 @@ light:
 binary_sensor:
   - platform: gpio
     name: "${name} Pressed Left Button"  
-    id: button_left    
+    id: one_button    
     pin: 
       number: GPIO4
       mode: INPUT_PULLUP
@@ -77,22 +101,22 @@ binary_sensor:
       - invert:
       - delayed_on: 20ms
     on_multi_click:
-      # Short pressed Left Button
       - timing:
-        - ON for 50ms to 1000ms
+        - ON for 20ms to 1s
+        - OFF for at least 100ms
         then:
-          - logger.log: "One-Pressed Left Button"
+          - logger.log: "Single Short Clicked One Button"
           - if:
               condition:
                 - switch.is_off: buttons_lock
               then:
                 - if:
                     condition:
-                      - light.is_off: left_relay
+                      - light.is_off: one_relay
                     then:
-                      - light.turn_on: left_relay
+                      - light.turn_on: one_relay
                     else:
-                      - light.turn_off: left_relay
+                      - light.turn_off: one_relay
               else:
                 - output.turn_off: output_led_green
                 - delay: 100ms              
@@ -109,15 +133,14 @@ binary_sensor:
                       - switch.is_on: backlighting
                     then:
                       - output.turn_on: output_led_green
-
-      # Long pressed Left Button
       - timing:
-        - ON for at least 1500ms
+        - ON for 2s to 4s
+        - OFF for at least 100ms
         then:
-          - logger.log: "Long-Pressed Left Button"
+          - logger.log: "Single Long Clicked One Button"
           - if:
               condition:
-                - binary_sensor.is_off: button_right
+                - binary_sensor.is_off: two_button
               then:
                 - if:
                     condition:
@@ -168,10 +191,59 @@ binary_sensor:
                             - switch.is_on: backlighting
                           then:
                             - output.turn_on: output_led_green
+      - timing:
+        - ON for at least 10s
+        then:
+          - logger.log: "Reboot"
+          - if:
+              condition:
+                - switch.is_off: buttons_lock
+              then:
+                - if:
+                    condition:
+                      - binary_sensor.is_on: two_button
+                    then:
+                      - output.turn_off: output_led_green                
+                      - delay: 500ms
+                      - output.turn_on: output_led_green               
+                      - delay: 1000ms  
+                      - button.press: restart_button
+                    else:
+                      - output.turn_off: output_led_green
+                      - delay: 100ms              
+                      - output.turn_on: output_led_green
+                      - delay: 300ms
+                      - output.turn_off: output_led_green
+                      - delay: 100ms              
+                      - output.turn_on: output_led_green
+                      - delay: 300ms
+                      - output.turn_off: output_led_green              
+                      - delay: 100ms
+                      - if:
+                          condition:
+                            - switch.is_on: backlighting
+                          then:
+                            - output.turn_on: output_led_green
+              else:
+                - output.turn_off: output_led_green
+                - delay: 100ms              
+                - output.turn_on: output_led_green
+                - delay: 200ms
+                - output.turn_off: output_led_green
+                - delay: 100ms              
+                - output.turn_on: output_led_green
+                - delay: 200ms
+                - output.turn_off: output_led_green              
+                - delay: 100ms      
+                - if:
+                    condition:
+                      - switch.is_on: backlighting
+                    then:
+                      - output.turn_on: output_led_green
 
   - platform: gpio
     name: "${name} Pressed Right Button"  
-    id: button_right    
+    id: two_button    
     pin: 
       number: RX
       mode: INPUT_PULLUP
@@ -179,22 +251,22 @@ binary_sensor:
       - invert:
       - delayed_on: 20ms
     on_multi_click:
-      # Short pressed Right Button
       - timing:
-        - ON for 50ms to 1000ms
+        - ON for 20ms to 1s
+        - OFF for at least 100ms
         then:
-          - logger.log: "One-Pressed Right Button"
+          - logger.log: "Single Short Clicked Two Button"
           - if:
               condition:
                 - switch.is_off: buttons_lock
               then:
                 - if:
                     condition:
-                      - light.is_off: right_relay
+                      - light.is_off: two_relay
                     then:
-                      - light.turn_on: right_relay
+                      - light.turn_on: two_relay
                     else:
-                      - light.turn_off: right_relay
+                      - light.turn_off: two_relay
               else:
                 - output.turn_off: output_led_green
                 - delay: 100ms              
@@ -211,15 +283,14 @@ binary_sensor:
                       - switch.is_on: backlighting
                     then:
                       - output.turn_on: output_led_green
-
-      # Long pressed Right Button
       - timing:
-        - ON for at least 1500ms
+        - ON for 2s to 4s
+        - OFF for at least 100ms
         then:
-          - logger.log: "Long-Pressed Right Button"
+          - logger.log: "Single Long Clicked Two Button"
           - if:
               condition:
-                - binary_sensor.is_off: button_left
+                - binary_sensor.is_off: one_button
               then:
                 - if:
                     condition:
@@ -300,6 +371,7 @@ switch:
 
 button:
   - platform: restart
+    id: restart_button
     name: "${name} Restart"
 
 sensor:  
