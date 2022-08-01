@@ -1,8 +1,9 @@
 # Description
 # This configuration is written for switches Zemismart
-# - A quick press on the key turns on/off the light
-# - Long press on the left or right key locks/unlocks the keys
-# - A long press on the left and right publishes the pressing of two keys
+#  - Quick press (from 20 ms to 1 s) on any key turns on/off the relevant relay
+#  - Long press (from 2 to 4 seconds) on any key locks/unlocks all keys
+#  - Long press (at least 10 seconds) on all keys will restart the chip
+#
 # https://github.com/xxsokolov/esphome/blob/main/switches/zemismart
 # 
 # example
@@ -138,9 +139,10 @@ binary_sensor:
       - delayed_on: 20ms
     on_multi_click:
       - timing:
-        - ON for 50ms to 1000ms
+        - ON for 20ms to 1s
+        - OFF for at least 100ms
         then:
-          - logger.log: "One-Pressed One Button"
+          - logger.log: "Single Short Clicked One Button"
           - if:
               condition:
                 - switch.is_off: buttons_lock
@@ -191,9 +193,10 @@ binary_sensor:
                     then:
                       - output.turn_on: output_two_led
       - timing:
-        - ON for at least 1500ms
+        - ON for 2s to 4s
+        - OFF for at least 100ms
         then:
-          - logger.log: "Long-Pressed One Button"
+          - logger.log: "Single Long Clicked One Button"
           - if:
               condition:
                 - switch.is_off: buttons_lock
@@ -254,6 +257,95 @@ binary_sensor:
                       - output.turn_on: output_three_led
                 - switch.turn_off: buttons_lock
 
+      - timing:
+        - ON for at least 10s
+        then:
+          - logger.log: "Reboot"
+          - if:
+              condition:
+                - switch.is_off: buttons_lock
+              then:
+                - if:
+                    condition:
+                      - binary_sensor.is_on: two_button
+                      - binary_sensor.is_on: three_button
+                    then:
+                      - output.turn_off: output_one_led
+                      - output.turn_off: output_two_led
+                      - output.turn_off: output_three_led
+                      - delay: 100ms              
+                      - output.turn_on: output_one_led
+                      - output.turn_on: output_two_led
+                      - output.turn_on: output_three_led
+                      - delay: 300ms
+                      - output.turn_off: output_one_led
+                      - output.turn_off: output_two_led
+                      - output.turn_off: output_three_led
+                      - delay: 100ms              
+                      - output.turn_on: output_one_led
+                      - output.turn_on: output_two_led
+                      - output.turn_on: output_three_led
+                      - delay: 300ms
+                      - output.turn_off: output_one_led
+                      - output.turn_off: output_two_led
+                      - output.turn_off: output_three_led
+                      - delay: 100ms    
+                      - button.press: restart_button
+                    else:
+                      - output.turn_off: output_one_led
+                      - output.turn_off: output_two_led
+                      - output.turn_off: output_three_led
+                      - delay: 500ms
+                      - output.turn_on: output_one_led
+                      - output.turn_on: output_two_led
+                      - output.turn_on: output_three_led
+                      - delay: 1000ms
+                      - output.turn_off: output_one_led
+                      - output.turn_off: output_two_led
+                      - output.turn_off: output_three_led
+                      - if:
+                          condition:
+                            - light.is_on: one_relay
+                          then:
+                            - output.turn_on: output_one_led
+                      - if:
+                          condition:
+                            - light.is_on: two_relay
+                          then:
+                            - output.turn_on: output_two_led
+                      - if:
+                          condition:
+                            - light.is_on: three_relay
+                          then:
+                            - output.turn_on: output_two_led
+              else:
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - output.turn_off: output_three_led
+                - delay: 500ms
+                - output.turn_on: output_one_led
+                - output.turn_on: output_two_led
+                - output.turn_on: output_three_led
+                - delay: 1000ms
+                - output.turn_off: output_one_led
+                - output.turn_off: output_two_led
+                - output.turn_off: output_three_led
+                - if:
+                    condition:
+                      - light.is_on: one_relay
+                    then:
+                      - output.turn_on: output_one_led
+                - if:
+                    condition:
+                      - light.is_on: two_relay
+                    then:
+                      - output.turn_on: output_two_led
+                - if:
+                    condition:
+                      - light.is_on: three_relay
+                    then:
+                      - output.turn_on: output_two_led
+
   - platform: gpio
     name: "${name} Pressed Two Button"  
     id: two_button  
@@ -265,9 +357,10 @@ binary_sensor:
       - delayed_on: 20ms
     on_multi_click:
       - timing:
-        - ON for 50ms to 1000ms
+        - ON for 20ms to 1s
+        - OFF for at least 100ms
         then:
-          - logger.log: "One-Pressed One Button"
+          - logger.log: "Single Short Clicked Two Button"
           - if:
               condition:
                 - switch.is_off: buttons_lock
@@ -318,9 +411,10 @@ binary_sensor:
                     then:
                       - output.turn_on: output_two_led
       - timing:
-        - ON for at least 1500ms
+        - ON for 2s to 4s
+        - OFF for at least 100ms
         then:
-          - logger.log: "Long-Pressed One Button"
+          - logger.log: "Single Long Clicked Two Button"
           - if:
               condition:
                 - switch.is_off: buttons_lock
@@ -392,9 +486,10 @@ binary_sensor:
       - delayed_on: 20ms
     on_multi_click:
       - timing:
-        - ON for 50ms to 1000ms
+        - ON for 20ms to 1s
+        - OFF for at least 100ms
         then:
-          - logger.log: "One-Pressed One Button"
+          - logger.log: "Single Short Clicked Three Button"
           - if:
               condition:
                 - switch.is_off: buttons_lock
@@ -445,9 +540,10 @@ binary_sensor:
                     then:
                       - output.turn_on: output_three_led
       - timing:
-        - ON for at least 1500ms
+        - ON for 2s to 4s
+        - OFF for at least 100ms
         then:
-          - logger.log: "Long-Pressed One Button"
+          - logger.log: "Single Long Clicked Three Button"
           - if:
               condition:
                 - switch.is_off: buttons_lock
@@ -518,10 +614,10 @@ switch:
 
 button:
   - platform: restart
+    id: restart_button
     name: "${name} Restart"
 
 sensor:  
   - platform: wifi_signal
     name: "${name} WiFi Signal"
     update_interval: 60s
-  
