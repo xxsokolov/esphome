@@ -179,7 +179,6 @@ binary_sensor:
                       - light.is_on: one_relay
                     then:
                       - output.turn_on: output_relay_led
-                - switch.turn_off: buttons_lock
 
 switch:
   - platform: template
